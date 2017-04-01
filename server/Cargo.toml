@@ -9,3 +9,12 @@ path = "main.rs"
 [dependencies]
 common = { path = "../common" }
 log = "^0.3.7"
+serde= "^0.9.12"
+serde_derive = "^0.9.12"
+rocket = "^0.2.4"
+rocket_codegen = "^0.2.4"
+
+[dependencies.rocket_contrib]
+version = "^0.2.4"
+default-features = false
+features = ["handlebars_templates"]
