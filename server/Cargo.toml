@@ -10,8 +10,9 @@ path = "main.rs"
 [dependencies]
 common = { path = "../common" }
 log = "^0.3.7"
-serde= "^0.9.12"
+serde = "^0.9.12"
 serde_derive = "^0.9.12"
+diesel = { version = "^0.12", features = ["postgres", "uuid"] }
 rocket = "^0.2.4"
 rocket_codegen = "^0.2.4"
 

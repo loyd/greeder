@@ -10,10 +10,13 @@ extern crate serde_derive;
 extern crate rocket;
 extern crate rocket_contrib;
 
+use std::sync::Mutex;
+
 use rocket::config::{Config, Environment};
 use rocket_contrib::Template;
 
 use common::logger;
+use common::schema;
 
 #[get("/")]
 pub fn index() -> Template {
@@ -30,11 +33,15 @@ pub fn index() -> Template {
 fn main() {
     logger::init().unwrap();
 
+    // TODO(ydz): what about r2d2?
+    let conn = schema::establish_connection().unwrap();
+
     let config = Config::build(Environment::Production)
         .port(3000)
         .unwrap();
 
     rocket::custom(config, false)
         .mount("/", routes![index])
+        .manage(Mutex::new(conn))
         .launch();
 }
