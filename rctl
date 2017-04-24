@@ -44,7 +44,7 @@ case "$2" in
         scp "target/$TARGET/$MODE/$MAIN" "$ROLE@$HOST":"$DIR"
 
         if [ $MAIN == server ]; then
-            scp -r templates "$ROLE@$HOST":"$DIR/templates"
+            scp -r server/templates "$ROLE@$HOST":"$DIR/templates"
         fi
         ;;
 
