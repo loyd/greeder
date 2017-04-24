@@ -4,11 +4,17 @@
 extern crate common;
 #[macro_use]
 extern crate log;
+extern crate time;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate uuid;
 extern crate rocket;
 extern crate rocket_contrib;
+#[macro_use]
+extern crate diesel;
+#[macro_use]
+extern crate diesel_codegen;
 
 use std::sync::Mutex;
 
@@ -17,6 +23,8 @@ use rocket_contrib::Template;
 
 use common::logger;
 use common::schema;
+
+mod models;
 
 #[get("/")]
 pub fn index() -> Template {
