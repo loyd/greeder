@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use common::models::User;
 
-pub struct UserGuard(User);
+pub struct UserGuard(pub User);
 
 impl Deref for UserGuard {
     type Target = User;
