@@ -10,33 +10,26 @@ extern crate serde;
 extern crate serde_derive;
 extern crate uuid;
 extern crate rocket;
+#[macro_use]
 extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel;
 #[macro_use]
 extern crate diesel_codegen;
+extern crate uuid;
 
 use std::sync::Mutex;
 
 use rocket::config::{Config, Environment};
-use rocket_contrib::Template;
 
 use common::logger;
 use common::schema;
 
+mod controllers;
+use controllers::{pages, feed};
+
 mod models;
-
-#[get("/")]
-pub fn index() -> Template {
-    #[derive(Serialize)]
-    struct Context {
-        name: String
-    }
-
-    Template::render("index", &Context {
-        name: "world".to_owned()
-    })
-}
+mod guards;
 
 fn main() {
     logger::init().unwrap();
@@ -47,9 +40,16 @@ fn main() {
     let config = Config::build(Environment::Production)
         .port(3000)
         .unwrap();
+    let index_routes = routes![
+        pages::index, pages::statics,
+    ];
+    let feed_routes = routes![
+        feed::fetch_all, feed::add
+    ];
 
     rocket::custom(config, false)
-        .mount("/", routes![index])
+        .mount("/", index_routes)
+        .mount("/feed", feed_routes)
         .manage(Mutex::new(conn))
         .launch();
 }

@@ -8,16 +8,16 @@ name = "server"
 path = "main.rs"
 
 [dependencies]
-common = { path = "../common" }
+common = { path = "../common", features = ["commit-transaction"]}
 log = "^0.3.7"
 time = "^0.1.36"
+uuid = { version = "^0.4", features = ["v4"] }
 serde = "^0.9.12"
 serde_derive = "^0.9.12"
-uuid = "^0.4"
+diesel = { version = "^0.12", features = ["postgres", "uuid"] }
+diesel_codegen = { version = "^0.12", features = ["postgres"] }
 rocket = "^0.2.4"
 rocket_codegen = "^0.2.4"
-diesel = "^0.12"
-diesel_codegen = "^0.12"
 
 [dependencies.rocket_contrib]
 version = "^0.2.4"
