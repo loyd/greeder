@@ -1,5 +1,23 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
+<head>
+	<link rel="stylesheet" href="css/style.css">
+	<script src="js/index.js"></script>
+</head>
 <title>Greeder</title>
 
-<h1>Hello, {{name}}!</h1>
+<div class="layout">
+	<div class="flex-row">
+		<div class="menu">
+			<div class="flex-column">
+				<span class="caption">Hello, {{uid}}</span>
+				<span class="vertical-indent"></span>
+				<a href="/management">Управление лентами</a>
+			</div>
+		</div>
+		<div class="content">
+			<h3>Список лент</h3>
+			<div id="feed-list"></div>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,69 @@
+body {
+	margin: 0;
+	padding: 0;
+	height: 100vh;
+}
+
+a {
+	text-decoration: none;
+	color: gray;
+}
+
+* {
+	font-family: 'PT Sans'
+}
+
+.layout {
+	display: flex;
+	flex-direction: row;
+	height: 100%;
+}
+
+.flex-row {
+	display: flex;
+	flex-direction: row;
+	justify-content: stretch;
+}
+
+.center {
+	justify-content: center;
+	text-align: center;
+}
+
+.cross-center {
+	align-items: center;
+}
+
+.error {
+	font-size: 100px;
+}
+
+.muted-text {
+	font-size: small;
+	color: gray;
+}
+
+.flex-column {
+	display: flex;
+	flex-direction: column;
+}
+
+.menu {
+	width: 400px;
+	box-sizing: border-box;
+	height: 100%;
+	border-right: 3px solid rgb(237, 241, 241);
+	padding: 20px;
+}
+
+.content {
+	padding-left: 25px;
+}
+
+.caption {
+	font-weight: bold;
+}
+
+.vertical-indent {
+	padding-top: 30px;
+}

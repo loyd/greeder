@@ -1,7 +1,7 @@
 use time::Timespec;
 use uuid::Uuid;
 
-use common::schema::feed;
+use common::schema::{feed, user};
 use common::types::{Url, Key};
 
 #[derive(Debug, Queryable)]
@@ -41,6 +41,12 @@ pub struct Entry {
 #[derive(Debug, Queryable)]
 pub struct User {
     pub id: i32,
+    pub uid: Uuid
+}
+
+#[derive(Debug, Insertable)]
+#[table_name="user"]
+pub struct NewUser {
     pub uid: Uuid
 }
 
