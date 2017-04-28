@@ -26,7 +26,7 @@ use common::logger;
 use common::schema;
 
 mod controllers;
-use controllers::{index, feed, entry};
+use controllers::{index, feed, entry, management};
 
 mod models;
 mod guards;
@@ -48,6 +48,9 @@ fn main() {
     ];
     let entry_routes = routes![
         entry::one
+    ];
+    let management_routes = routes![
+        management::index
     ];
 
     rocket::custom(config, false)
