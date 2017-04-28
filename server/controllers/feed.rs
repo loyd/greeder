@@ -13,11 +13,26 @@ use models::{NewFeed, Feed, Subscription, Entry};
 use guards::user::UserGuard;
 use schema::{feed, subscription, entry};
 
+use std::os::unix::net::UnixDatagram;
+use std::io::Write;
+
 type Connection = Mutex<PgConnection>;
 
 #[derive(Deserialize)]
 pub struct PostUrl {
     url: String
+}
+
+fn ipc_send_url(url: Url) {
+    let mut socket = match UnixDatagram::bind("./fetcher") {
+        Ok(sock) => sock,
+        Err(e) => {
+            error!("Couldn't connect: {:?}", e);
+            return;
+        }
+    };
+    let bytes = url.to_string();
+    socket.send(bytes.as_bytes());
 }
 
 #[post("/add", data = "<url>")]
@@ -26,22 +41,8 @@ pub fn add(url: JSON<PostUrl>, user: UserGuard, conn: State<Connection>) -> Cust
         Ok(url) => url,
         Err(err) => return Custom(Status::new(400, "Bad url"), ())
     };
-
-    // TODO(ydz): check feed availability.
-    let key = Key::from(url.clone());
-    let new_feed = NewFeed {
-        key: key,
-        url: url
-    };
-    let conn = conn.lock().unwrap();
-    let insertion = diesel::insert(&new_feed)
-        .into(feed::table)
-        .get_result::<Feed>(&*conn);
-
-    match insertion {
-        Ok(_) => Custom(Status::new(200, "Successfully added and subscribed"), ()),
-        Err(_) => Custom(Status::new(500, "Addition failed"), ())
-    }
+    ipc_send_url(url);
+    Custom(Status::Ok, ());
 }
 
 type Feeds = JSON<Vec<Feed>>;
