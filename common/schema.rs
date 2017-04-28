@@ -1,3 +1,4 @@
+use std::env;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 
@@ -7,7 +8,9 @@ const DATABASE_URL: &str = "postgres://localhost/greeder";
 pub fn establish_connection() -> ConnectionResult<PgConnection> {
     let connection = PgConnection::establish(DATABASE_URL)?;
 
-    if cfg!(not(feature = "commit-transaction")) {
+    let is_prod = env::var("G_ENV").ok().map_or(false, |env| env == "production");
+
+    if !is_prod {
         connection.begin_test_transaction().unwrap();
     }
 

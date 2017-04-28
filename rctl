@@ -9,7 +9,7 @@ fi
 
 : ${TARGET:=i686-unknown-linux-gnu}
 : ${CHANNEL:=nightly}
-: ${FLAGS:=--features=commit-transaction}
+: ${FLAGS:=}
 : ${MODE:=debug}
 : ${ROLE:=greeder}
 : ${HOST:=}
@@ -18,7 +18,7 @@ fi
 : ${LOG_FILE:="$MAIN.log"}
 : ${RUST_LOG:=info}
 : ${RUST_BACKTRACE:=1}
-: ${ENV="RUST_LOG=$RUST_LOG RUST_BACKTRACE=$RUST_BACKTRACE TZ='Europe/Moscow'"}
+: ${ENV="G_ENV=production RUST_LOG=$RUST_LOG RUST_BACKTRACE=$RUST_BACKTRACE TZ='Europe/Moscow'"}
 
 if [ -z "$HOST" ]; then
     echo "You should specify HOST"
