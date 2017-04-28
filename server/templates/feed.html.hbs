@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<head>
+	<link rel="stylesheet" href="/css/style.css">
+	<script src="/js/http.js"></script>
+	<script src="/js/templater.js"></script>
+	<script src="/js/feed.js"></script>
+</head>
+<title>Greeder</title>
+
+<div class="layout">
+	<div class="flex-row">
+		<div class="menu">
+			<div class="flex-column">
+				<span class="caption">Hello, {{uid}}</span>
+				<span class="vertical-indent"></span>
+				<a href="/management">Управление лентами</a>
+			</div>
+		</div>
+		<div class="content" data-feed-id="{{feed_id}}">
+			<h3>{{feed.title}}</h3>
+			<div class="muted-text">{{feed.description}} ({{feed.url}})</div>
+
+			<h4>Новости</h4>
+			<div id="entry-list">
+				{{#each entries}}
+				<div class="feed-item">
+					<div class="caption"><a href="/entry/{{id}}">{{title}}</a></div>
+					<div class="desc"><b>{{author}}</b> {{published}}</div>
+				</div>
+				{{/each}}
+			</div>
+		</div>
+	</div>
+</div>
+
+<template id="entry-template">
+	<div class="flex-column feed-item">
+		<div class="caption"><a href="/feed/((id))">((title))</a></div>
+		<div class="text-muted">((description))</div>
+	</div>
+</template>

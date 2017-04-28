@@ -26,7 +26,7 @@ use common::logger;
 use common::schema;
 
 mod controllers;
-use controllers::{pages, feed};
+use controllers::{index, feed};
 
 mod models;
 mod guards;
@@ -41,10 +41,10 @@ fn main() {
         .port(3000)
         .unwrap();
     let index_routes = routes![
-        pages::index, pages::statics,
+        index::index, index::statics,
     ];
     let feed_routes = routes![
-        feed::fetch_all, feed::add
+        feed::fetch_all, feed::add, feed::one
     ];
 
     rocket::custom(config, false)

@@ -1,6 +1,7 @@
 use rocket::response::status::Custom;
 use rocket::http::Status;
 use rocket_contrib::JSON;
+use rocket_contrib::Template;
 use rocket::State;
 use diesel;
 use diesel::prelude::*;
@@ -8,9 +9,9 @@ use diesel::pg::PgConnection;
 use std::sync::Mutex;
 
 use common::types::{Url, Key};
-use models::{NewFeed, Feed, Subscription};
+use models::{NewFeed, Feed, Subscription, Entry};
 use guards::user::UserGuard;
-use schema::{feed, subscription};
+use schema::{feed, subscription, entry};
 
 type Connection = Mutex<PgConnection>;
 
@@ -50,6 +51,7 @@ pub fn fetch_all(user: UserGuard, conn: State<Connection>) -> Custom<Feeds> {
     let conn = conn.lock().unwrap();
     use schema::subscription::dsl::user_id;
     use schema::subscription;
+
     let subscriptions = subscription::table
         .filter(user_id.eq(user.0.id))
         .load::<Subscription>(&*conn);
@@ -75,6 +77,37 @@ pub fn fetch_all(user: UserGuard, conn: State<Connection>) -> Custom<Feeds> {
     Custom(Status::Ok, JSON(feeds))
 }
 
+#[derive(Serialize)]
+struct Context {
+    uid: String,
+    feed: Feed,
+    entries: Vec<Entry>
+}
+
+#[derive(Serialize)]
+struct EmptyContext;
+
+#[get("/<feed_id>")]
+pub fn one(user: UserGuard, conn: State<Connection>, feed_id: i32) -> Template {
+    let conn = conn.lock().unwrap();
+    use schema::feed::dsl::id;
+    use schema::entry::dsl::feed_id as entry_feed_id;
+    let feed = match feed::table.filter(id.eq(feed_id)).first::<Feed>(&*conn) {
+        Ok(feed) => feed,
+        Err(_) => return Template::render("error", &EmptyContext)
+    };
+
+    let entries = match entry::table.filter(entry_feed_id.eq(feed_id)).load::<Entry>(&*conn) {
+        Ok(entries) => entries,
+        Err(_) => return Template::render("error", &EmptyContext)
+    };
+
+    Template::render("feed", &Context {
+        uid: user.uid.to_string(),
+        feed: feed,
+        entries: entries
+    })
+}
 // #[delete("/remove",)]
 // pub fn remove(feed: JSON<Feed>) {
 

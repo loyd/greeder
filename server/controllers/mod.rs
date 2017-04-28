@@ -1,2 +1,2 @@
 pub mod feed;
-pub mod pages;
+pub mod index;

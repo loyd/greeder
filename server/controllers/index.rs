@@ -58,7 +58,8 @@ pub fn index(conn: State<Connection>, cookies: &Cookies) -> Template {
     })
 }
 
-#[get("/<file..>")]
+
+#[get("/<file..>", rank=10)]
 fn statics(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
 }

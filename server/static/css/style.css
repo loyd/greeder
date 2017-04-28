@@ -79,6 +79,11 @@ a {
 	border-bottom: 1px solid rgb(237, 241, 241);
 }
 
+.desc {
+	font-size: small;
+	color: gray;
+}
+
 .feed-item:hover {
 	border-left: 2px dashed orange;
 	padding-left: 5px;
