@@ -25,6 +25,7 @@ use rocket::config::{Config, Environment};
 use common::logger;
 use common::schema;
 
+
 mod controllers;
 use controllers::{index, feed, entry, management};
 
@@ -50,13 +51,15 @@ fn main() {
         entry::one
     ];
     let management_routes = routes![
-        management::index
+        management::index, management::sub,
+        management::unsub, management::feed_n_subs
     ];
 
     rocket::custom(config, false)
         .mount("/", index_routes)
         .mount("/feed", feed_routes)
         .mount("/entry", entry_routes)
+        .mount("/management", management_routes)
         .manage(Mutex::new(conn))
         .launch();
 }

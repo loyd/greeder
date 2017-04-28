@@ -96,3 +96,18 @@ a {
 .entry-content {
 	margin-top: 40px;
 }
+
+.btn {
+	border: 1px solid orange;
+	border-radius: 3px;
+	padding: 7px;
+	cursor: pointer;
+}
+
+.sub-btn {
+	border-color: blue;
+}
+
+.flex-spread {
+	justify-content: space-between;;
+}

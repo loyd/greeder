@@ -30,6 +30,61 @@ pub fn index(user: UserGuard, conn: State<Connection>) -> Template {
     })
 }
 
+#[derive(Serialize)]
+pub struct FeedNSubs {
+    pub subs: Vec<Feed>,
+    pub other_feeds: Vec<Feed>
+}
+
+impl FeedNSubs {
+    fn new() -> FeedNSubs {
+        FeedNSubs {
+            subs: vec![],
+            other_feeds: vec![]
+        }
+    }
+}
+type Feeds = JSON<FeedNSubs>;
+
+#[get("/feed_n_subs")]
+pub fn feed_n_subs(user: UserGuard, conn: State<Connection>) -> Custom<Feeds> {
+    let conn = conn.lock().unwrap();
+    use schema::subscription::dsl::user_id;
+    use schema::subscription;
+
+    let subscriptions = subscription::table
+        .filter(user_id.eq(user.0.id))
+        .load::<Subscription>(&*conn);
+    let subscriptions = match subscriptions {
+        Ok(subs) => subs,
+        Err(_) => return Custom(Status::new(500, "DB Error"), JSON(FeedNSubs::new()))
+    };
+
+    let mut subs = vec![];
+    use schema::feed::dsl::id;
+    for sub in subscriptions {
+        let part = feed::table
+            .filter(id.eq(sub.feed_id))
+            .load::<Feed>(&*conn);
+        let part = match part {
+            Ok(data) => data,
+            Err(_) => return Custom(Status::new(500, "DB Error"), JSON(FeedNSubs::new()))
+        };
+        subs.extend(part);
+    }
+    let sub_ids: Vec<i32> = subs.iter().map(|feed| feed.id).collect();
+    let all = match feed::table.load::<Feed>(&*conn) {
+        Ok(data) => data,
+        Err(_) => return Custom(Status::new(500, "DB Error"), JSON(FeedNSubs::new()))
+    };
+    let mut other: Vec<Feed> = all.into_iter().filter(|feed| !sub_ids.contains(&feed.id)).collect();
+
+    Custom(Status::Ok, JSON(FeedNSubs {
+        subs: subs,
+        other_feeds: other
+    }))
+}
+
 #[derive(Deserialize)]
 pub struct UnsubFeed {
     feed_id: i32
