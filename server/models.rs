@@ -1,7 +1,7 @@
 use time::{Timespec, Tm, strftime, self};
 use uuid::Uuid;
 
-use common::schema::{feed, user};
+use common::schema::{feed, user, subscription};
 use common::types::{Url, Key};
 
 use serde::ser::{Serialize, Serializer, SerializeStruct};
@@ -113,7 +113,9 @@ pub struct NewUser {
     pub uid: Uuid
 }
 
-#[derive(Debug, Queryable)]
+#[derive(Debug, Queryable, Identifiable, Insertable)]
+#[table_name="subscription"]
+#[primary_key(user_id, feed_id)]
 pub struct Subscription {
     pub user_id: i32,
     pub feed_id: i32

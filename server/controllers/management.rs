@@ -17,8 +17,7 @@ type Connection = Mutex<PgConnection>;
 
 #[derive(Serialize)]
 struct Context {
-    uid: String,
-    feeds: Vec<Feed>
+    uid: String
 }
 
 #[derive(Serialize)]
@@ -37,21 +36,35 @@ pub struct UnsubFeed {
 }
 
 #[post("/unsub", data="<feed>")]
-pub fn subs(user: UserGuard, conn: State<Connection>, feed: JSON<UnsubFeed>) -> Custom<()> {
+pub fn unsub(user: UserGuard, conn: State<Connection>, feed: JSON<UnsubFeed>) -> Custom<()> {
     let conn = conn.lock().unwrap();
-    use schema::feed::dsl::feed_id;
-    use schema::user::dsl::uid as user_id
+    use schema::subscription::dsl::user_id;
+    use schema::subscription::dsl::feed_id;
 
-    let subscription = subscription::table
-        .filter(user_id.eq(user.uid))
-        .filter(feed_id.eq(feed.id))
+    let sub = subscription::table
+        .filter(user_id.eq(user.id))
+        .filter(feed_id.eq(feed.0.feed_id))
         .first::<Subscription>(&*conn);
-    let subscription = match subscription {
+    let sub = match sub {
         Ok(sub) => sub,
         Err(_) => return Custom(Status::new(500, "DB Error"), ())
     };
 
-    match diesel::delete(subscription).execute(&*conn) {
+    match diesel::delete(&sub).execute(&*conn) {
+        Ok(_) => Custom(Status::Ok, ()),
+        Err(_) => Custom(Status::new(500, "DB Error"), ())
+    }
+}
+
+#[post("/sub", data="<feed>")]
+pub fn sub(user: UserGuard, conn: State<Connection>, feed: JSON<UnsubFeed>) -> Custom<()> {
+    let conn = conn.lock().unwrap();
+    let sub = Subscription {
+        user_id: user.id,
+        feed_id: feed.0.feed_id
+    };
+
+    match diesel::insert(&sub).into(subscription::table).execute(&*conn) {
         Ok(_) => Custom(Status::Ok, ()),
         Err(_) => Custom(Status::new(500, "DB Error"), ())
     }
