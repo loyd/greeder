@@ -8,7 +8,6 @@ extern crate time;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate uuid;
 extern crate rocket;
 #[macro_use]
 extern crate rocket_contrib;

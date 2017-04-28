@@ -13,7 +13,7 @@ use models::{NewFeed, Feed, Subscription, Entry};
 use guards::user::UserGuard;
 use schema::{feed, subscription, entry};
 
-use std::os::unix::net::UnixDatagram;
+use std::net::UdpSocket;
 use std::io::Write;
 
 type Connection = Mutex<PgConnection>;
@@ -24,7 +24,7 @@ pub struct PostUrl {
 }
 
 fn ipc_send_url(url: Url) {
-    let mut socket = match UnixDatagram::bind("./fetcher") {
+    let mut socket = match UdpSocket::bind("127.0.0.1:3001") {
         Ok(sock) => sock,
         Err(e) => {
             error!("Couldn't connect: {:?}", e);
@@ -41,8 +41,29 @@ pub fn add(url: JSON<PostUrl>, user: UserGuard, conn: State<Connection>) -> Cust
         Ok(url) => url,
         Err(err) => return Custom(Status::new(400, "Bad url"), ())
     };
-    ipc_send_url(url);
-    Custom(Status::Ok, ());
+    let key = Key::from(url.clone());
+    use schema::feed::dsl::key as key_fld;
+    let conn = conn.lock().unwrap();
+    let feed_exists = match feed::table.filter(key_fld.eq(&key)).load::<Feed>(&*conn) {
+        Ok(feeds) => feeds.len() != 0,
+        Err(_) => return Custom(Status::new(500, "DB transaction failed"), ())
+    };
+
+    if feed_exists {
+        Custom(Status::Ok, ())
+    } else {
+        let new_feed = NewFeed {
+            key: key,
+            url: url.clone()
+        };
+        match diesel::insert(&new_feed).into(feed::table).execute(&*conn) {
+            Ok(feed) => {
+                ipc_send_url(url);
+                Custom(Status::Ok, ())
+            },
+            Err(_) => return Custom(Status::new(500, "DB transaction failed"), ())
+        }
+    }
 }
 
 type Feeds = JSON<Vec<Feed>>;

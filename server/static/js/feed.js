@@ -7,7 +7,7 @@ function run() {
 		.catch(showError);
 }
 
-function loadFeeds() {
+function loadEntries() {
 	let entryId = document.querySelector('.content').getAttribute('data-feed-id');
 	return http.get('/feed/entries/'+entryId).then(r => r.data);
 }

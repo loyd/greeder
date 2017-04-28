@@ -8,7 +8,7 @@ use std::ops::Deref;
 use std::sync::Mutex;
 use uuid::Uuid;
 
-use common::models::User;
+use models::User;
 
 pub struct UserGuard(pub User);
 
