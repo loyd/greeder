@@ -26,7 +26,7 @@ use common::logger;
 use common::schema;
 
 mod controllers;
-use controllers::{index, feed};
+use controllers::{index, feed, entry};
 
 mod models;
 mod guards;
@@ -46,10 +46,14 @@ fn main() {
     let feed_routes = routes![
         feed::fetch_all, feed::add, feed::one
     ];
+    let entry_routes = routes![
+        entry::one
+    ];
 
     rocket::custom(config, false)
         .mount("/", index_routes)
         .mount("/feed", feed_routes)
+        .mount("/entry", entry_routes)
         .manage(Mutex::new(conn))
         .launch();
 }
