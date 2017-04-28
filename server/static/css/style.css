@@ -4,6 +4,16 @@ body {
 	height: 100vh;
 }
 
+input:focus {
+	outline: none;
+}
+
+input {
+	padding-left: 10px;
+	margin-right: 10px;
+	font-size: 15px;
+}
+
 a {
 	text-decoration: none;
 	color: black;
@@ -110,4 +120,8 @@ a {
 
 .flex-spread {
 	justify-content: space-between;;
+}
+
+#url-add {
+	width: 600px;
 }

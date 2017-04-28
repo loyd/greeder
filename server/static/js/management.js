@@ -1,7 +1,30 @@
-window.addEventListener('DOMContentLoaded', rebuildLists);
+window.addEventListener('DOMContentLoaded', run);
+
+function run() {
+	rebuildLists();
+	addFeedHandler();
+}
+
+function addFeedHandler() {
+	let urlField = document.querySelector('#url-add');
+	let addButton = document.querySelector('#url-add-button');
+	let statusLabel = document.querySelector('#addition-status');
+	let setAndHideStatus = msg => {
+		statusLabel.innerHTML = msg;
+		setTimeout(_ => statusLabel.innerHTML = '', 3000);
+	};
+	addButton.onclick = _ => {
+		let url = urlField.value;
+		http.post('/feed/add', { url }).then(_ => {
+			urlField.value = '';
+			setAndHideStatus('Лента скоро будет добавлена в базу');
+		}).catch(e => {
+
+		});
+	};
+}
 
 function rebuildLists() {
-
 	load()
 		.then(buildSubs)
 		.then(showSubs)
