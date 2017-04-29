@@ -17,10 +17,14 @@ extern crate diesel_codegen;
 extern crate readability;
 
 use std::cmp;
+use std::str;
 use std::ascii::AsciiExt;
+use std::net::SocketAddr;
+use std::io::{Result as IoResult, Error as IoError, ErrorKind as IoErrorKind};
 
 use time::Timespec;
 use tokio_core::reactor::{Core, Handle};
+use tokio_core::net::{UdpSocket, UdpCodec};
 use futures::future;
 use futures::{Future, Stream};
 use rss::Channel;
@@ -233,6 +237,28 @@ fn save_entries(connection: &PgConnection, feed: &Feed, entries: &[NewEntry]) ->
     })
 }
 
+struct IdCodec;
+
+impl UdpCodec for IdCodec {
+    type In = i32;
+    type Out = ();
+
+    fn decode(&mut self, _: &SocketAddr, buffer: &[u8]) -> IoResult<i32> {
+        let message = str::from_utf8(buffer).map_err(|_| IoErrorKind::InvalidInput)?;
+
+        let id = message
+            .trim()
+            .parse::<i32>()
+            .map_err(|message| IoError::new(IoErrorKind::InvalidData, message))?;
+
+        Ok(id)
+    }
+
+    fn encode(&mut self, _: (), _: &mut Vec<u8>) -> SocketAddr {
+        unimplemented!();
+    }
+}
+
 fn main() {
     logger::init().unwrap();
 
@@ -260,7 +286,7 @@ fn main() {
     let mut lp = Core::new().unwrap();
     let handle = lp.handle();
 
-    let process = feed_stream
+    let fetching = feed_stream
         // TODO(loyd): should we fetch feeds concurrently?
         .and_then(|feed| fetch_entries(&handle, feed))
         .and_then(|(feed, entries)| fetch_documents(&handle, feed, entries))
@@ -280,7 +306,27 @@ fn main() {
             Ok(())
         });
 
-    lp.run(process).unwrap();
+    let addr = &"127.0.0.1:3001".parse().unwrap();
+
+    let adding = UdpSocket::bind(addr, &handle).unwrap().framed(IdCodec)
+        .map(|id| {
+            match schema::feed::table.find(id).first::<Feed>(&connection) {
+                Ok(feed) => {
+                    debug!("Scheduled {} anytime soon", feed.key);
+                    scheduler.schedule(0, feed);
+                },
+                Err(error) => error!("Loading feed #{} is failed: {}", id, error)
+            };
+
+            ()
+        })
+        .or_else(|error| {
+            error!("Invalid id: {}", error);
+            Ok(())
+        })
+        .for_each(|_| Ok(()));
+
+    let _ = lp.run(fetching.select(adding));
 }
 
 #[test]
