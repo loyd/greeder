@@ -109,6 +109,7 @@ pub fn one(user: UserGuard, conn: State<Connection>, key: PathBuf) -> Template {
     let conn = conn.lock().unwrap();
     use schema::feed::dsl::key as fkey;
     use schema::entry::dsl::feed_id as entry_feed_id;
+
     let key = Key::from_raw(key.to_str().unwrap().to_owned());
     let feed = match feed::table.filter(fkey.eq(&key)).first::<Feed>(&*conn) {
         Ok(feed) => feed,
