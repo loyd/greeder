@@ -17,11 +17,14 @@ extern crate diesel_codegen;
 extern crate readability;
 
 use std::cmp;
+use std::str;
 use std::ascii::AsciiExt;
-use std::io::Error as IoError;
+use std::net::SocketAddr;
+use std::io::{Result as IoResult, Error as IoError, ErrorKind as IoErrorKind};
 
 use time::Timespec;
 use tokio_core::reactor::{Core, Handle};
+use tokio_core::net::{UdpSocket, UdpCodec};
 use futures::future;
 use futures::{Future, Stream};
 use rss::Channel;
@@ -93,8 +96,8 @@ fn unify_language(mut language: String) -> Option<String> {
 fn parse_rfc822_date(date: &str) -> Option<Timespec> {
     match mailparse::dateparse(date) {
         Ok(date) => Some(Timespec::new(date, 0)),
-        Err(err) => {
-            warn!("Cannot parse \"{}\" as date: {}", date, err);
+        Err(error) => {
+            warn!("Cannot parse \"{}\" as date: {}", date, error);
             None
         }
     }
@@ -110,12 +113,24 @@ fn parse_url(url: &str) -> Option<Url> {
     }
 }
 
-fn fetch_entries(handle: &Handle, feed: Feed)
-    -> impl Future<Item=(Feed, Vec<NewEntry>), Error=IoError>
+fn fetch_entries(handle: &Handle, mut feed: Feed)
+    -> impl Future<Item=(Feed, Vec<NewEntry>), Error=()>
 {
     info!("Fetching {} feed...", feed.key);
 
-    download::channel(handle, &feed.url).map(|channel| disassemble_channel(feed, channel))
+    download::channel(handle, &feed.url).then(|channel| {
+        Ok(match channel {
+            Ok(channel) => disassemble_channel(feed, channel),
+            Err(error) => {
+                warn!("Fetching {} is failed: {}", feed.key, error);
+
+                let interval = estimate_interval(feed.interval.unwrap() as u32, 0, 0);
+                feed.interval = Some(interval as i32);
+
+                (feed, Vec::new())
+            }
+        })
+    })
 }
 
 fn disassemble_channel(mut feed: Feed, channel: Channel) -> (Feed, Vec<NewEntry>) {
@@ -165,31 +180,29 @@ fn disassemble_channel(mut feed: Feed, channel: Channel) -> (Feed, Vec<NewEntry>
         })
     }).collect();
 
-    let prev_interval = feed.interval.unwrap_or(0) as u32;
-    feed.interval = Some(estimate_interval(prev_interval, total_count, new_count) as i32);
+    let interval = estimate_interval(feed.interval.unwrap() as u32, total_count, new_count);
+    feed.interval = Some(interval as i32);
 
     (feed, entries)
 }
 
 fn fetch_documents(handle: &Handle, feed: Feed, entries: Vec<NewEntry>)
-    -> impl Future<Item=(Feed, Vec<NewEntry>), Error=IoError> + 'static
+    -> impl Future<Item=(Feed, Vec<NewEntry>), Error=()> + 'static
 {
-    type BoxFuture = Box<Future<Item=Option<NewEntry>, Error=IoError>>;
-
     let fetchers = entries.into_iter().map(|mut entry| {
         debug!("  Fetching {} entry...", entry.key);
 
         if entry.url.is_none() {
-            return Box::new(future::ok(Some(entry))) as BoxFuture;
+            return future::ok(Some(entry)).boxed();
         }
 
-        let fetcher = download::document(handle, entry.url.as_ref().unwrap());
+        let download = download::document(handle, entry.url.as_ref().unwrap());
 
-        let future = fetcher.then(|result| {
+        download.then(|result| {
             let document = match result {
                 Ok(document) => document,
                 Err(error) => {
-                    error!("Fetching {} is failed: {}", entry.key, error);
+                    warn!("Fetching {} is failed: {}", entry.key, error);
                     return Ok(None);
                 }
             };
@@ -200,9 +213,7 @@ fn fetch_documents(handle: &Handle, feed: Feed, entries: Vec<NewEntry>)
             // TODO(loyd): leave original `content` in some situations.
             entry.content = Some(content);
             Ok(Some(entry))
-        });
-
-        Box::new(future) as BoxFuture
+        }).boxed()
     }).collect::<Vec<_>>();
 
     future::join_all(fetchers).map(|entries| {
@@ -226,6 +237,28 @@ fn save_entries(connection: &PgConnection, feed: &Feed, entries: &[NewEntry]) ->
     })
 }
 
+struct IdCodec;
+
+impl UdpCodec for IdCodec {
+    type In = i32;
+    type Out = ();
+
+    fn decode(&mut self, _: &SocketAddr, buffer: &[u8]) -> IoResult<i32> {
+        let message = str::from_utf8(buffer).map_err(|_| IoErrorKind::InvalidInput)?;
+
+        let id = message
+            .trim()
+            .parse::<i32>()
+            .map_err(|message| IoError::new(IoErrorKind::InvalidData, message))?;
+
+        Ok(id)
+    }
+
+    fn encode(&mut self, _: (), _: &mut Vec<u8>) -> SocketAddr {
+        unimplemented!();
+    }
+}
+
 fn main() {
     logger::init().unwrap();
 
@@ -239,8 +272,9 @@ fn main() {
 
     info!("Scheduling initial {} feeds...", initial_feeds.len());
 
-    for feed in initial_feeds {
+    for mut feed in initial_feeds {
         let timeout = feed.interval.unwrap_or(0);
+        feed.interval = Some(timeout);
 
         debug!("  Scheduled {} after {}s", feed.key, timeout);
 
@@ -252,8 +286,9 @@ fn main() {
     let mut lp = Core::new().unwrap();
     let handle = lp.handle();
 
-    let process = feed_stream
-        .then(|feed| fetch_entries(&handle, feed.unwrap()))
+    let fetching = feed_stream
+        // TODO(loyd): should we fetch feeds concurrently?
+        .and_then(|feed| fetch_entries(&handle, feed))
         .and_then(|(feed, entries)| fetch_documents(&handle, feed, entries))
         .for_each(|(mut feed, entries)| {
             info!("Visited {} and collected {} new entries", feed.key, entries.len());
@@ -271,7 +306,27 @@ fn main() {
             Ok(())
         });
 
-    lp.run(process).unwrap();
+    let addr = &"127.0.0.1:3001".parse().unwrap();
+
+    let adding = UdpSocket::bind(addr, &handle).unwrap().framed(IdCodec)
+        .map(|id| {
+            match schema::feed::table.find(id).first::<Feed>(&connection) {
+                Ok(feed) => {
+                    debug!("Scheduled {} anytime soon", feed.key);
+                    scheduler.schedule(0, feed);
+                },
+                Err(error) => error!("Loading feed #{} is failed: {}", id, error)
+            };
+
+            ()
+        })
+        .or_else(|error| {
+            error!("Invalid id: {}", error);
+            Ok(())
+        })
+        .for_each(|_| Ok(()));
+
+    let _ = lp.run(fetching.select(adding));
 }
 
 #[test]
