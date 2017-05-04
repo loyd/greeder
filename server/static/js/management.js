@@ -1,91 +1,18 @@
-window.addEventListener('DOMContentLoaded', run);
+document.addEventListener('DOMContentLoaded', run);
 
-function run() {
-	rebuildLists();
-	addFeedHandler();
-}
+function createUnsubHandler(btn) {
+	let feedEntry = btn.parentNode.parentNode.parentNode;
+	let key = btn.getAttribute('data-key');
 
-function addFeedHandler() {
-	let urlField = document.querySelector('#url-add');
-	let addButton = document.querySelector('#url-add-button');
-	let statusLabel = document.querySelector('#addition-status');
-	let setAndHideStatus = msg => {
-		statusLabel.innerHTML = msg;
-		setTimeout(_ => statusLabel.innerHTML = '', 3000);
-	};
-	addButton.onclick = _ => {
-		let url = urlField.value;
-		http.post('/feed/add', { url }).then(_ => {
-			urlField.value = '';
-			setAndHideStatus('Лента скоро будет добавлена в базу');
-		}).catch(e => {
-
+	return e => {
+		http.post('/management/unsub', { key }).then(data => {
+			feedEntry.classList.add('hide-transition');
 		});
 	};
 }
 
-function rebuildLists() {
-	load()
-		.then(buildSubs)
-		.then(showSubs)
-		.catch(showError);
-}
-
-function load() {
-	return http.get('/management/feed_n_subs').then(r => r.data);
-}
-
-function unsubHandler(e) {
-	let feed_id = e.target.getAttribute('data-unsub');
-	http.post('/management/unsub', { feed_id })
-		.then(rebuildLists)
-}
-
-function subHandler(e) {
-	let feed_id = e.target.getAttribute('data-sub');
-	http.post('/management/sub', { feed_id })
-		.then(rebuildLists);
-}
-
-function buildSubs(feeds) {
-	let subs = feeds.subs;
-	let other = feeds.other_feeds;
-
-	let subFragment = document.createDocumentFragment();
-	let feedFragment = document.createDocumentFragment();
-	let subTemplate = Templator.byId('sub-template');
-	let feedTemplate = Templator.byId('feed-template');
-
-	subs
-		.map(feed => subTemplate.build(feed))
-		.map(elem => {
-			elem.querySelector('.unsub-btn').addEventListener('click', unsubHandler);
-			return elem;
-		})
-		.forEach(elem => subFragment.appendChild(elem));
-
-	other
-		.map(feed => feedTemplate.build(feed))
-		.map(elem => {
-			elem.querySelector('.sub-btn').addEventListener('click', subHandler);
-			return elem;
-		})
-		.forEach(elem => feedFragment.appendChild(elem));
-
-	return [subFragment, feedFragment];
-}
-
-function showSubs(fragments) {
-	let [subList, feedList] = fragments;
-	let subListElem = document.querySelector('#subscription-list');
-	let feedListElem = document.querySelector('#other-list');
-	subListElem.innerHTML = '';
-	feedListElem.innerHTML = '';
-
-	subListElem.appendChild(subList);
-	feedListElem.appendChild(feedList);
-}
-
-function showError(e) {
-	console.error(e);
+function run() {
+	[...document.querySelectorAll('.unsub-btn')].forEach(btn => {
+		btn.addEventListener('click', createUnsubHandler(btn));
+	});
 }

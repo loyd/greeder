@@ -2,9 +2,6 @@
 <meta charset="utf-8" />
 <head>
 	<link rel="stylesheet" href="/css/style.css">
-	<script src="/js/http.js"></script>
-	<script src="/js/templater.js"></script>
-	<script src="/js/feed.js"></script>
 </head>
 <title>Greeder</title>
 
@@ -26,7 +23,7 @@
 			<div id="entry-list">
 				{{#each entries}}
 				<div class="feed-item">
-					<div class="caption"><a href="/entry/{{id}}">{{title}}</a></div>
+					<div class="caption"><a href="/entry/{{key}}">{{title}}</a></div>
 					<div class="desc"><b>{{author}}</b> {{published}}</div>
 				</div>
 				{{/each}}
@@ -34,10 +31,3 @@
 		</div>
 	</div>
 </div>
-
-<template id="entry-template">
-	<div class="flex-column feed-item">
-		<div class="caption"><a href="/feed/((id))">((title))</a></div>
-		<div class="text-muted">((description))</div>
-	</div>
-</template>

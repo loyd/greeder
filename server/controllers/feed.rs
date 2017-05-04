@@ -15,7 +15,7 @@ use schema::{feed, subscription, entry};
 
 use std::net::UdpSocket;
 use std::io::Write;
-use std::clone::Clone;
+use std::path::{PathBuf, Path};
 
 type Connection = Mutex<PgConnection>;
 
@@ -104,24 +104,25 @@ struct Context {
 #[derive(Serialize)]
 struct EmptyContext;
 
-#[get("/<feed_key>")]
-pub fn one(user: UserGuard, conn: State<Connection>, feed_key: String) -> Template {
+#[get("/<key..>")]
+pub fn one(user: UserGuard, conn: State<Connection>, key: PathBuf) -> Template {
     let conn = conn.lock().unwrap();
     use schema::feed::dsl::key as fkey;
     use schema::entry::dsl::feed_id as entry_feed_id;
-    let feed = match feed::table.filter(fkey.eq(feed_key)).first::<Feed>(&*conn) {
+    let key = Key::from_raw(key.to_str().unwrap().to_owned());
+    let feed = match feed::table.filter(fkey.eq(&key)).first::<Feed>(&*conn) {
         Ok(feed) => feed,
         Err(_) => return Template::render("error", &EmptyContext)
     };
 
     let entries = match entry::table.filter(entry_feed_id.eq(feed.id)).load::<Entry>(&*conn) {
-        Ok(entries) => entries,
+        Ok(entries) => entries.into_iter().map(|e| e.into()).collect(),
         Err(_) => return Template::render("error", &EmptyContext)
     };
 
     Template::render("feed", &Context {
         uid: user.uid.to_string(),
         feed: feed.into(),
-        entries: entries.into_iter().map(|e| e.into()).collect()
+        entries: entries
     })
 }

@@ -3,7 +3,6 @@
 <head>
 	<link rel="stylesheet" href="/css/style.css">
 	<script src="/js/http.js"></script>
-	<script src="/js/templater.js"></script>
 	<script src="/js/management.js"></script>
 </head>
 <title>Greeder</title>
@@ -28,36 +27,21 @@
 				<span id="addition-status" class="muted-text"></span>
 			</div>
 			<h3>Управление лентами</h3>
-			<div id="subscription-list"></div>
-			<div id="other-list"></div>
+			<div class="flex-column">
+				{{#each subs}}
+				<div class="flex-column feed-item">
+					<div class="flex-row flex-spread">
+						<div>
+							<div class="caption"><a href="/feed/{{key}}">{{title}}</a></div>
+							<div class="text-muted">{{description}}</div>
+						</div>
+						<div class="control-side">
+							<div class="btn unsub-btn" data-key="{{key}}">Отписаться</div>
+						</div>
+					</div>
+				</div>
+				{{/each}}
+			</div>
 		</div>
 	</div>
 </div>
-
-<template id="sub-template">
-	<div class="flex-column feed-item">
-		<div class="flex-row flex-spread">
-			<div>
-				<div class="caption"><a href="/feed/((id))">((title))</a></div>
-				<div class="text-muted">((description))</div>
-			</div>
-			<div class="control-side">
-				<div class="btn unsub-btn" data-unsub="((id))">Отписаться</div>
-			</div>
-		</div>
-	</div>
-</template>
-
-<template id="feed-template">
-	<div class="flex-column feed-item">
-		<div class="flex-row flex-spread">
-			<div>
-				<div class="caption"><a href="/feed/((id))">((title))</a></div>
-				<div class="text-muted">((description))</div>
-			</div>
-			<div class="control-side">
-				<div class="btn sub-btn" data-sub="((id))">Подписаться</div>
-			</div>
-		</div>
-	</div>
-</template>

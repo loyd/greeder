@@ -82,11 +82,26 @@ a {
 
 .feed-item {
 	display: inline-block;
+	height: 40px;
 	width: 700px;
 	margin-bottom: 15px;
 	padding-bottom: 3px;
 	padding-left: 7px;
 	border-bottom: 1px solid rgb(237, 241, 241);
+}
+
+.hide-transition {
+	overflow: hidden;
+	height: 0;
+	border: 0;
+	margin-bottom: 0;
+	padding-bottom: 0;
+	padding-left: 0;
+	transition:
+		height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s,
+		margin-bottom 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s,
+		border 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s,
+		padding-bottom 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s;
 }
 
 .desc {
@@ -121,6 +136,11 @@ a {
 .flex-spread {
 	justify-content: space-between;;
 }
+
+.hidden {
+	display: none;
+}
+
 
 #url-add {
 	width: 600px;

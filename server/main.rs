@@ -30,6 +30,7 @@ use controllers::{index, feed, entry, management};
 
 mod models;
 mod guards;
+mod hb_helpers;
 
 fn main() {
     logger::init().unwrap();
@@ -52,6 +53,7 @@ fn main() {
     let management_routes = routes![
         management::index, management::subs, management::unsub
     ];
+    hb_helpers::setup();
 
     rocket::custom(config, false)
         .mount("/", index_routes)

@@ -18,6 +18,7 @@ diesel = { version = "^0.12", features = ["postgres", "uuid"] }
 diesel_codegen = { version = "^0.12", features = ["postgres"] }
 rocket = "^0.2.4"
 rocket_codegen = "^0.2.4"
+handlebars = "0.25.3"
 
 [dependencies.rocket_contrib]
 version = "^0.2.4"

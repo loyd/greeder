@@ -1,3 +1,6 @@
+use std::sync::Mutex;
+use std::path::PathBuf;
+
 use rocket::response::status::Custom;
 use rocket::http::Status;
 use rocket_contrib::JSON;
@@ -6,7 +9,6 @@ use rocket::State;
 use diesel;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use std::sync::Mutex;
 
 use common::types::{Url, Key};
 use models::{Feed, UserFeed, Entry, UserEntry};
@@ -25,14 +27,15 @@ struct Context {
 #[derive(Serialize)]
 struct EmptyContext;
 
-#[get("/<entry_key>")]
-pub fn one(user: UserGuard, conn: State<Connection>, entry_key: &str) -> Template {
+#[get("/<key..>")]
+pub fn one(user: UserGuard, conn: State<Connection>, key: PathBuf) -> Template {
     let conn = conn.lock().unwrap();
     use schema::feed::dsl::id as feed_id_field;
-    use schema::entry::dsl::key as key;
+    use schema::entry::dsl::key as ekey;
     use schema::entry::dsl::feed_id as entry_feed_id_field;
 
-    let entry = match entry::table.filter(key.eq(entry_key)).first::<Entry>(&*conn) {
+    let key = Key::from_raw(key.to_str().unwrap().to_owned());
+    let entry = match entry::table.filter(ekey.eq(&key)).first::<Entry>(&*conn) {
         Ok(entry) => entry,
         Err(_) => return Template::render("error", &EmptyContext)
     };

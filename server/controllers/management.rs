@@ -17,16 +17,51 @@ type Connection = Mutex<PgConnection>;
 
 #[derive(Serialize)]
 struct Context {
-    uid: String
+    uid: String,
+    subs: Vec<UserFeed>
 }
 
 #[derive(Serialize)]
 struct EmptyContext;
 
+#[derive(Serialize)]
+struct ErrorContext {
+    msg: String
+}
+
+impl ErrorContext {
+    fn new(e: &str) -> ErrorContext {
+        ErrorContext {
+            msg: e.to_string()
+        }
+    }
+}
+
 #[get("/")]
 pub fn index(user: UserGuard, conn: State<Connection>) -> Template {
+    let conn = conn.lock().unwrap();
+    use schema::subscription::dsl::user_id as uid;
+    use schema::subscription;
+    use schema::feed::dsl::id;
+
+    let subscriptions = subscription::table.filter(uid.eq(user.id)).load::<Subscription>(&*conn);
+    let subscriptions = match subscriptions {
+        Ok(subs) => subs,
+        Err(_) => return Template::render("error", &ErrorContext::new("Cant fetch subscriptions"))
+    };
+
+    let mut subs = vec![];
+    for sub in subscriptions {
+        let part = match feed::table.filter(id.eq(sub.feed_id)).load::<Feed>(&*conn) {
+            Ok(data) => data.into_iter().map(|e| e.into()),
+            Err(_) => return Template::render("error", &ErrorContext::new("Cant fetch feeds"))
+        };
+        subs.extend(part);
+    }
+
     Template::render("management", &Context {
-        uid: user.uid.to_string()
+        uid: user.uid.to_string(),
+        subs: subs
     })
 }
 
