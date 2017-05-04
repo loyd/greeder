@@ -9,7 +9,7 @@
 	<div class="flex-row">
 		<div class="menu">
 			<div class="flex-column">
-				<span class="caption">Hello, {{uid}}</span>
+				<span class="caption">{{uid}}</span>
 				<span class="vertical-indent"></span>
 				<a href="/">Список лент</a>
 				<a href="/management">Управление лентами</a>
@@ -20,12 +20,13 @@
 			<div class="muted-text">{{feed.description}} ({{feed.url}})</div>
 
 			<h4>Новости</h4>
-			<div id="entry-list">
+			<div class="flex-column">
 				{{#each entries}}
+				<a href="/entry/{{key}}">
 				<div class="feed-item">
-					<div class="caption"><a href="/entry/{{key}}">{{title}}</a></div>
+					<div class="caption">{{title}}</div>
 					<div class="desc"><b>{{author}}</b> {{published}}</div>
-				</div>
+				</div></a>
 				{{/each}}
 			</div>
 		</div>

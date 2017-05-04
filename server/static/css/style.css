@@ -26,12 +26,12 @@ a {
 .layout {
 	display: flex;
 	flex-direction: row;
+	justify-content: center;
 	height: 100%;
 }
 
 .flex-row {
 	display: flex;
-	width: 100%;
 	flex-direction: row;
 	justify-content: stretch;
 }
@@ -63,13 +63,15 @@ a {
 	width: 400px;
 	box-sizing: border-box;
 	height: 100%;
-	border-right: 3px solid rgb(237, 241, 241);
+	border-right: 3px solid orange;
 	padding: 20px;
 }
 
 .content {
 	padding-left: 25px;
-	width: 100%;
+	width: 1024px;
+	overflow-y: scroll;
+
 }
 
 .caption {
@@ -110,8 +112,8 @@ a {
 }
 
 .feed-item:hover {
-	border-left: 2px dashed orange;
-	padding-left: 5px;
+	/*border-left: 2px dashed red;
+	padding-left: 5px;*/
 }
 
 .arrow {
