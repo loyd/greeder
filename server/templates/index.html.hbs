@@ -2,9 +2,6 @@
 <meta charset="utf-8" />
 <head>
 	<link rel="stylesheet" href="/css/style.css">
-	<script src="/js/http.js"></script>
-	<script src="/js/templater.js"></script>
-	<script src="/js/index.js"></script>
 </head>
 <title>Greeder</title>
 
@@ -20,14 +17,14 @@
 		</div>
 		<div class="content">
 			<h3>Список лент</h3>
-			<div id="feed-list"></div>
+			<div id="feed-list">
+				{{#each feeds}}
+				<div class="flex-column feed-item">
+					<div class="caption"><a href="/feed/{{key}}">{{title}}</a></div>
+					<div class="text-muted">{{description}}</div>
+				</div>
+				{{/each}}
+			</div>
 		</div>
 	</div>
 </div>
-
-<template id="feed-template">
-	<div class="flex-column feed-item">
-		<div class="caption"><a href="/feed/((id))">((title))</a></div>
-		<div class="text-muted">((description))</div>
-	</div>
-</template>
