@@ -69,31 +69,6 @@ pub fn add(url: JSON<PostUrl>, user: UserGuard, conn: State<Connection>) -> Cust
 
 type Feeds = JSON<Vec<UserFeed>>;
 
-#[get("/")]
-pub fn fetch_all(user: UserGuard, conn: State<Connection>) -> Custom<Feeds> {
-    let conn = conn.lock().unwrap();
-    use schema::subscription::dsl::user_id;
-    use schema::subscription;
-    use schema::feed::dsl::id as fid;
-
-    let subscriptions = subscription::table.filter(user_id.eq(user.id)).load::<Subscription>(&*conn);
-    let subscriptions = match subscriptions {
-        Ok(subs) => subs,
-        Err(_) => return Custom(Status::new(500, "DB Error"), JSON(vec![]))
-    };
-
-    let mut feeds = vec![];
-    for sub in subscriptions {
-        let feed_id = sub.feed_id;
-        let part = match feed::table.filter(fid.eq(feed_id)).load::<Feed>(&*conn) {
-            Ok(data) => data.into_iter().map(|feed| feed.into()),
-            Err(_) => return Custom(Status::new(500, "DB Error"), JSON(vec![]))
-        };
-        feeds.extend(part);
-    }
-    Custom(Status::Ok, JSON(feeds))
-}
-
 #[derive(Serialize)]
 struct Context {
     uid: String,

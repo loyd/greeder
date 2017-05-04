@@ -45,7 +45,7 @@ fn main() {
         index::index, index::statics,
     ];
     let feed_routes = routes![
-        feed::fetch_all, feed::add, feed::one
+        feed::add, feed::one
     ];
     let entry_routes = routes![
         entry::one
