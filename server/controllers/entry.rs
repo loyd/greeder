@@ -9,7 +9,7 @@ use diesel::pg::PgConnection;
 use std::sync::Mutex;
 
 use common::types::{Url, Key};
-use models::{NewFeed, Feed, Subscription, Entry};
+use models::{Feed, UserFeed, Entry, UserEntry};
 use guards::user::UserGuard;
 use schema::{feed, subscription, entry};
 
@@ -18,21 +18,21 @@ type Connection = Mutex<PgConnection>;
 #[derive(Serialize)]
 struct Context {
     uid: String,
-    feed: Feed,
-    entry: Entry
+    feed: UserFeed,
+    entry: UserEntry
 }
 
 #[derive(Serialize)]
 struct EmptyContext;
 
-#[get("/<entry_id>")]
-pub fn one(user: UserGuard, conn: State<Connection>, entry_id: i64) -> Template {
+#[get("/<entry_key>")]
+pub fn one(user: UserGuard, conn: State<Connection>, entry_key: &str) -> Template {
     let conn = conn.lock().unwrap();
     use schema::feed::dsl::id as feed_id_field;
-    use schema::entry::dsl::id as entry_id_field;
+    use schema::entry::dsl::key as key;
     use schema::entry::dsl::feed_id as entry_feed_id_field;
 
-    let entry = match entry::table.filter(entry_id_field.eq(entry_id)).first::<Entry>(&*conn) {
+    let entry = match entry::table.filter(key.eq(entry_key)).first::<Entry>(&*conn) {
         Ok(entry) => entry,
         Err(_) => return Template::render("error", &EmptyContext)
     };
@@ -44,7 +44,7 @@ pub fn one(user: UserGuard, conn: State<Connection>, entry_id: i64) -> Template 
 
     Template::render("entry", &Context {
         uid: user.uid.to_string(),
-        feed: feed,
-        entry: entry
+        feed: feed.into(),
+        entry: entry.into()
     })
 }

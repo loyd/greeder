@@ -1,6 +1,6 @@
+#![feature(custom_attribute)]
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
-
 extern crate common;
 #[macro_use]
 extern crate log;
@@ -50,8 +50,7 @@ fn main() {
         entry::one
     ];
     let management_routes = routes![
-        management::index, management::sub,
-        management::unsub, management::feed_n_subs
+        management::index, management::subs, management::unsub
     ];
 
     rocket::custom(config, false)

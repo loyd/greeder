@@ -9,7 +9,7 @@ use diesel::pg::PgConnection;
 use std::sync::Mutex;
 
 use common::types::{Url, Key};
-use models::{NewFeed, Feed, Subscription, Entry};
+use models::{NewFeed, Feed, UserFeed, Subscription, Entry, UserEntry};
 use guards::user::UserGuard;
 use schema::{feed, subscription, entry};
 
@@ -31,95 +31,65 @@ pub fn index(user: UserGuard, conn: State<Connection>) -> Template {
 }
 
 #[derive(Serialize)]
-pub struct FeedNSubs {
-    pub subs: Vec<Feed>,
-    pub other_feeds: Vec<Feed>
+pub struct Subs {
+    pub subs: Vec<UserFeed>
 }
 
-impl FeedNSubs {
-    fn new() -> FeedNSubs {
-        FeedNSubs {
-            subs: vec![],
-            other_feeds: vec![]
-        }
-    }
-}
-type Feeds = JSON<FeedNSubs>;
+type Feeds = JSON<Subs>;
 
-#[get("/feed_n_subs")]
-pub fn feed_n_subs(user: UserGuard, conn: State<Connection>) -> Custom<Feeds> {
+#[get("/subs")]
+pub fn subs(user: UserGuard, conn: State<Connection>) -> Custom<Feeds> {
     let conn = conn.lock().unwrap();
-    use schema::subscription::dsl::user_id;
+    use schema::subscription::dsl::user_id as uid;
     use schema::subscription;
+    use schema::feed::dsl::id;
 
-    let subscriptions = subscription::table
-        .filter(user_id.eq(user.0.id))
-        .load::<Subscription>(&*conn);
+    let subscriptions = subscription::table.filter(uid.eq(user.id)).load::<Subscription>(&*conn);
     let subscriptions = match subscriptions {
         Ok(subs) => subs,
-        Err(_) => return Custom(Status::new(500, "DB Error"), JSON(FeedNSubs::new()))
+        Err(_) => return Custom(Status::new(500, "DB Error"), JSON(Subs { subs: vec![] }))
     };
 
     let mut subs = vec![];
-    use schema::feed::dsl::id;
     for sub in subscriptions {
-        let part = feed::table
-            .filter(id.eq(sub.feed_id))
-            .load::<Feed>(&*conn);
-        let part = match part {
-            Ok(data) => data,
-            Err(_) => return Custom(Status::new(500, "DB Error"), JSON(FeedNSubs::new()))
+        let part = match feed::table.filter(id.eq(sub.feed_id)).load::<Feed>(&*conn) {
+            Ok(data) => data.into_iter().map(|e| e.into()),
+            Err(_) => return Custom(Status::new(500, "DB Error"), JSON(Subs { subs: vec![] }))
         };
         subs.extend(part);
     }
-    let sub_ids: Vec<i32> = subs.iter().map(|feed| feed.id).collect();
-    let all = match feed::table.load::<Feed>(&*conn) {
-        Ok(data) => data,
-        Err(_) => return Custom(Status::new(500, "DB Error"), JSON(FeedNSubs::new()))
-    };
-    let mut other: Vec<Feed> = all.into_iter().filter(|feed| !sub_ids.contains(&feed.id)).collect();
 
-    Custom(Status::Ok, JSON(FeedNSubs {
-        subs: subs,
-        other_feeds: other
-    }))
+    Custom(Status::Ok, JSON(Subs { subs }))
 }
 
 #[derive(Deserialize)]
 pub struct UnsubFeed {
-    feed_id: i32
+    key: String
 }
 
 #[post("/unsub", data="<feed>")]
 pub fn unsub(user: UserGuard, conn: State<Connection>, feed: JSON<UnsubFeed>) -> Custom<()> {
     let conn = conn.lock().unwrap();
+    use schema::feed::dsl::key as fkey;
     use schema::subscription::dsl::user_id;
     use schema::subscription::dsl::feed_id;
 
+    let key = Key::from_raw(feed.key.clone());
+    let unsub_feed = match feed::table.filter(fkey.eq(&key)).first::<Feed>(&*conn) {
+        Ok(feed) => feed,
+        Err(not_found) => return Custom(Status::new(401, "No such feed"), ())
+    };
+
     let sub = subscription::table
         .filter(user_id.eq(user.id))
-        .filter(feed_id.eq(feed.0.feed_id))
+        .filter(feed_id.eq(unsub_feed.id))
         .first::<Subscription>(&*conn);
     let sub = match sub {
         Ok(sub) => sub,
-        Err(_) => return Custom(Status::new(500, "DB Error"), ())
+        Err(not_found) => return Custom(Status::new(401, "No sub to unsub"), ())
     };
 
     match diesel::delete(&sub).execute(&*conn) {
-        Ok(_) => Custom(Status::Ok, ()),
-        Err(_) => Custom(Status::new(500, "DB Error"), ())
-    }
-}
-
-#[post("/sub", data="<feed>")]
-pub fn sub(user: UserGuard, conn: State<Connection>, feed: JSON<UnsubFeed>) -> Custom<()> {
-    let conn = conn.lock().unwrap();
-    let sub = Subscription {
-        user_id: user.id,
-        feed_id: feed.0.feed_id
-    };
-
-    match diesel::insert(&sub).into(subscription::table).execute(&*conn) {
         Ok(_) => Custom(Status::Ok, ()),
         Err(_) => Custom(Status::new(500, "DB Error"), ())
     }

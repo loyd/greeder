@@ -83,6 +83,12 @@ impl<DB> ToSql<Text, DB> for Url
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Key(String);
 
+impl Key {
+    pub fn from_raw(key: String) -> Key {
+        Key(key)
+    }
+}
+
 impl From<Url> for Key {
     fn from(url: Url) -> Key {
         let url = url.0;

@@ -1,14 +1,14 @@
+use std::path::{PathBuf, Path};
+use std::sync::Mutex;
+use std::io;
 use rocket::http::{Cookies, Cookie};
 use rocket::State;
 use rocket::response::NamedFile;
 use rocket_contrib::{Template};
-use std::path::{PathBuf, Path};
 use uuid::Uuid;
 use diesel;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use std::sync::Mutex;
-use std::io;
 
 use models::{User, NewUser};
 use schema::user;

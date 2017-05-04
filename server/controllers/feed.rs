@@ -9,12 +9,13 @@ use diesel::pg::PgConnection;
 use std::sync::Mutex;
 
 use common::types::{Url, Key};
-use models::{NewFeed, Feed, Subscription, Entry};
+use models::{NewFeed, Feed, UserFeed, Subscription, Entry, UserEntry};
 use guards::user::UserGuard;
 use schema::{feed, subscription, entry};
 
 use std::net::UdpSocket;
 use std::io::Write;
+use std::clone::Clone;
 
 type Connection = Mutex<PgConnection>;
 
@@ -66,71 +67,61 @@ pub fn add(url: JSON<PostUrl>, user: UserGuard, conn: State<Connection>) -> Cust
     }
 }
 
-type Feeds = JSON<Vec<Feed>>;
+type Feeds = JSON<Vec<UserFeed>>;
 
 #[get("/")]
 pub fn fetch_all(user: UserGuard, conn: State<Connection>) -> Custom<Feeds> {
     let conn = conn.lock().unwrap();
     use schema::subscription::dsl::user_id;
     use schema::subscription;
+    use schema::feed::dsl::id as fid;
 
-    let subscriptions = subscription::table
-        .filter(user_id.eq(user.0.id))
-        .load::<Subscription>(&*conn);
+    let subscriptions = subscription::table.filter(user_id.eq(user.id)).load::<Subscription>(&*conn);
     let subscriptions = match subscriptions {
         Ok(subs) => subs,
         Err(_) => return Custom(Status::new(500, "DB Error"), JSON(vec![]))
     };
 
     let mut feeds = vec![];
-    use schema::feed::dsl::id;
     for sub in subscriptions {
         let feed_id = sub.feed_id;
-        let part = feed::table
-            .filter(id.eq(feed_id))
-            .load::<Feed>(&*conn);
-        let part = match part {
-            Ok(data) => data,
+        let part = match feed::table.filter(fid.eq(feed_id)).load::<Feed>(&*conn) {
+            Ok(data) => data.into_iter().map(|feed| feed.into()),
             Err(_) => return Custom(Status::new(500, "DB Error"), JSON(vec![]))
         };
         feeds.extend(part);
     }
-
     Custom(Status::Ok, JSON(feeds))
 }
 
 #[derive(Serialize)]
 struct Context {
     uid: String,
-    feed: Feed,
-    entries: Vec<Entry>
+    feed: UserFeed,
+    entries: Vec<UserEntry>
 }
 
 #[derive(Serialize)]
 struct EmptyContext;
 
-#[get("/<feed_id>")]
-pub fn one(user: UserGuard, conn: State<Connection>, feed_id: i32) -> Template {
+#[get("/<feed_key>")]
+pub fn one(user: UserGuard, conn: State<Connection>, feed_key: String) -> Template {
     let conn = conn.lock().unwrap();
-    use schema::feed::dsl::id;
+    use schema::feed::dsl::key as fkey;
     use schema::entry::dsl::feed_id as entry_feed_id;
-    let feed = match feed::table.filter(id.eq(feed_id)).first::<Feed>(&*conn) {
+    let feed = match feed::table.filter(fkey.eq(feed_key)).first::<Feed>(&*conn) {
         Ok(feed) => feed,
         Err(_) => return Template::render("error", &EmptyContext)
     };
 
-    let entries = match entry::table.filter(entry_feed_id.eq(feed_id)).load::<Entry>(&*conn) {
+    let entries = match entry::table.filter(entry_feed_id.eq(feed.id)).load::<Entry>(&*conn) {
         Ok(entries) => entries,
         Err(_) => return Template::render("error", &EmptyContext)
     };
 
     Template::render("feed", &Context {
         uid: user.uid.to_string(),
-        feed: feed,
-        entries: entries
+        feed: feed.into(),
+        entries: entries.into_iter().map(|e| e.into()).collect()
     })
 }
-// #[delete("/remove",)]
-// pub fn remove(feed: JSON<Feed>) {
-
-// }

@@ -20,24 +20,28 @@ pub struct Feed {
     pub augmented: Option<Timespec>
 }
 
-impl Serialize for Feed {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer {
-        let mut state = serializer.serialize_struct("Feed", 5)?;
-        let title = match &self.title {
-            &Some(ref title) => title.clone(),
-            &None => String::new()
-        };
-        let description = match &self.description {
-            &Some(ref description) => description.clone(),
-            &None => String::new()
-        };
-        state.serialize_field("id", &self.id)?;
-        state.serialize_field("title", &title)?;
-        state.serialize_field("description", &description)?;
-        state.serialize_field("logo", &self.logo)?;
-        state.serialize_field("url", &self.url)?;
-        state.end()
+#[derive(Debug, Queryable, Serialize)]
+pub struct UserFeed {
+    pub key: Key,
+    pub url: Url,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub language: Option<String>,
+    pub logo: Option<Url>,
+    pub copyright: Option<String>
+}
+
+impl Into<UserFeed> for Feed {
+    fn into(self) -> UserFeed {
+        UserFeed {
+            key: self.key,
+            url: self.url,
+            title: self.title,
+            description: self.description,
+            language: self.language,
+            logo: self.logo,
+            copyright: self.copyright
+        }
     }
 }
 
@@ -61,43 +65,29 @@ pub struct Entry {
     pub published: Option<Timespec>
 }
 
-impl Serialize for Entry {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer {
-        let mut state = serializer.serialize_struct("Entry", 8)?;
-        let title = match &self.title {
-            &Some(ref title) => title.clone(),
-            &None => String::new()
-        };
-        let description = match &self.description {
-            &Some(ref description) => description.clone(),
-            &None => String::new()
-        };
-        let author = match &self.author {
-            &Some(ref author) => author.clone(),
-            &None => String::new()
-        };
-        let content = match &self.content {
-            &Some(ref content) => content.clone(),
-            &None => String::new()
-        };
-        let published = match &self.published {
-            &Some(ref ts) => {
-                let tm = time::at(ts.clone());
-                strftime("%d.%m.%Y %H:%M", &tm).unwrap()
-                // ts.sec + (ts.nsec / 1000000000) as i64
-            },
-            &None => String::new()
-        };
-        state.serialize_field("id", &self.id)?;
-        state.serialize_field("feed_id", &self.feed_id)?;
-        state.serialize_field("url", &self.url)?;
-        state.serialize_field("title", &title)?;
-        state.serialize_field("description", &description)?;
-        state.serialize_field("author", &author)?;
-        state.serialize_field("content", &content)?;
-        state.serialize_field("published", &published)?;
-        state.end()
+#[derive(Debug, Queryable, Serialize)]
+#[table_name="entry"]
+pub struct UserEntry {
+    pub key: Key,
+    pub url: Option<Url>,
+    pub title: Option<String>,
+    pub author: Option<String>,
+    pub description: Option<String>,
+    pub content: Option<String>,
+    pub published: Option<u64>
+}
+
+impl Into<UserEntry> for Entry {
+    fn into(self) -> UserEntry {
+        UserEntry {
+            key: self.key,
+            url: self.url,
+            title: self.title,
+            author: self.author,
+            description: self.description,
+            content: self.content,
+            published: self.published.map(|t| t.sec as u64 + (t.nsec / 1000000000) as u64)
+        }
     }
 }
 
