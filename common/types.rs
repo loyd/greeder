@@ -45,9 +45,7 @@ impl Into<String> for Url {
 impl Serialize for Url {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer {
-        let key_str: String = self.0.clone().into_string();
-
-        serializer.serialize_str(key_str.as_str())
+        serializer.serialize_str(self.as_ref())
     }
 }
 
@@ -144,9 +142,7 @@ impl Into<String> for Key {
 impl Serialize for Key {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer {
-        let key_str: String = self.0.clone().into();
-
-        serializer.serialize_str(key_str.as_str())
+        serializer.serialize_str(self.as_ref())
     }
 }
 
