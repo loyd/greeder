@@ -9,6 +9,7 @@ use diesel::types::{Text, Nullable, IsNull, FromSqlRow, ToSql};
 use diesel::expression::AsExpression;
 use diesel::expression::helper_types::AsExprOf;
 use uuid::Uuid;
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Url(url::Url);
@@ -38,6 +39,13 @@ impl AsRef<str> for Url {
 impl Into<String> for Url {
     fn into(self) -> String {
         self.0.into_string()
+    }
+}
+
+impl Serialize for Url {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer {
+        serializer.serialize_str(self.as_ref())
     }
 }
 
@@ -74,6 +82,12 @@ impl<DB> ToSql<Text, DB> for Url
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Key(String);
+
+impl Key {
+    pub fn from_raw(key: String) -> Key {
+        Key(key)
+    }
+}
 
 impl From<Url> for Key {
     fn from(url: Url) -> Key {
@@ -128,6 +142,13 @@ impl AsRef<str> for Key {
 impl Into<String> for Key {
     fn into(self) -> String {
         self.0
+    }
+}
+
+impl Serialize for Key {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer {
+        serializer.serialize_str(self.as_ref())
     }
 }
 

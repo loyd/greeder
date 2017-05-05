@@ -15,14 +15,18 @@
 				<a href="/management">Управление лентами</a>
 			</div>
 		</div>
-		<div class="content">
-			<h3>Список лент</h3>
+		<div class="content" data-feed-id="{{feed_id}}">
+			<h3>{{feed.title}}</h3>
+			<div class="muted-text">{{feed.description}} ({{feed.url}})</div>
+
+			<h4>Новости</h4>
 			<div class="flex-column">
-				{{#each feeds}}
-				<div class="flex-column feed-item">
-					<div class="caption"><a href="/feed/{{key}}">{{title}}</a></div>
-					<div class="text-muted">{{description}}</div>
-				</div>
+				{{#each entries}}
+				<a href="/entry/{{key}}">
+				<div class="feed-item">
+					<div class="caption">{{title}}</div>
+					<div class="desc"><b>{{author}}</b> {{published}}</div>
+				</div></a>
 				{{/each}}
 			</div>
 		</div>

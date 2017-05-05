@@ -1,6 +1,6 @@
+#![feature(custom_attribute)]
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
-
 extern crate common;
 #[macro_use]
 extern crate log;
@@ -8,35 +8,29 @@ extern crate time;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate uuid;
 extern crate rocket;
+#[macro_use]
 extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel;
 #[macro_use]
 extern crate diesel_codegen;
+extern crate uuid;
 
 use std::sync::Mutex;
 
 use rocket::config::{Config, Environment};
-use rocket_contrib::Template;
 
 use common::logger;
 use common::schema;
 
+
+mod controllers;
+use controllers::{index, feed, entry, management};
+
 mod models;
-
-#[get("/")]
-pub fn index() -> Template {
-    #[derive(Serialize)]
-    struct Context {
-        name: String
-    }
-
-    Template::render("index", &Context {
-        name: "world".to_owned()
-    })
-}
+mod guards;
+mod hb_helpers;
 
 fn main() {
     logger::init().unwrap();
@@ -47,9 +41,25 @@ fn main() {
     let config = Config::build(Environment::Production)
         .port(3000)
         .unwrap();
+    let index_routes = routes![
+        index::index, index::statics,
+    ];
+    let feed_routes = routes![
+        feed::add, feed::one
+    ];
+    let entry_routes = routes![
+        entry::one
+    ];
+    let management_routes = routes![
+        management::index, management::subs, management::unsub
+    ];
+    hb_helpers::setup();
 
     rocket::custom(config, false)
-        .mount("/", routes![index])
+        .mount("/", index_routes)
+        .mount("/feed", feed_routes)
+        .mount("/entry", entry_routes)
+        .mount("/management", management_routes)
         .manage(Mutex::new(conn))
         .launch();
 }

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<head>
+	<link rel="stylesheet" href="/css/style.css">
+	<script src="/js/http.js"></script>
+	<script src="/js/management.js"></script>
+</head>
+<title>Greeder</title>
+
+<div class="layout">
+	<div class="flex-row">
+		<div class="menu">
+			<div class="flex-column">
+				<span class="caption">{{uid}}</span>
+				<span class="vertical-indent"></span>
+				<a href="/">Список лент</a>
+				<a href="/management">Управление лентами</a>
+			</div>
+		</div>
+		<div class="content">
+			<h3>Добавление ленты</h3>
+			<div class="flex-column">
+				<div class="flex-row">
+					<input id="url-add">
+					<div class="btn" id="url-add-button">Добавить</div>
+				</div>
+				<span id="addition-status" class="muted-text">&nbsp;</span>
+			</div>
+			<h3>Управление лентами</h3>
+			<div class="flex-column">
+				{{#each subs}}
+				<div class="flex-column feed-item">
+					<div class="flex-row flex-spread">
+						<div>
+							<div class="caption"><a href="/feed/{{key}}">{{title}}</a></div>
+							<div class="text-muted">{{description}}</div>
+						</div>
+						<div class="control-side">
+							<div class="btn unsub-btn" data-key="{{key}}">Отписаться</div>
+						</div>
+					</div>
+				</div>
+				{{/each}}
+			</div>
+		</div>
+	</div>
+</div>
