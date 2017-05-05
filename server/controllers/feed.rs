@@ -51,19 +51,23 @@ pub fn add(url: JSON<PostUrl>, user: UserGuard, conn: State<Connection>) -> Cust
     };
 
     if feed_exists {
-        Custom(Status::Ok, ())
-    } else {
-        let new_feed = NewFeed {
-            key: key,
-            url: url.clone()
-        };
-        match diesel::insert(&new_feed).into(feed::table).get_result::<Feed>(&*conn) {
-            Ok(feed) => {
-                ipc_send_url(feed.id);
-                Custom(Status::Ok, ())
-            },
-            Err(_) => return Custom(Status::new(500, "DB transaction failed"), ())
-        }
+        return Custom(Status::Ok, ())
+    }
+    let new_feed = NewFeed {
+        key: key,
+        url: url.clone()
+    };
+    return match diesel::insert(&new_feed).into(feed::table).get_result::<Feed>(&*conn) {
+        Ok(feed) => {
+            ipc_send_url(feed.id);
+            let new_sub = Subscription {
+                user_id: user.id,
+                feed_id: feed.id
+            };
+            diesel::insert(&new_sub).into(subscription::table).execute(&*conn).unwrap();
+            Custom(Status::Ok, ())
+        },
+        Err(_) => return Custom(Status::new(500, "DB transaction failed"), ())
     }
 }
 
