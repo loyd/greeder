@@ -24,7 +24,7 @@ pub struct PostUrl {
     url: String
 }
 
-fn ipc_send_url(url: Url) {
+fn ipc_send_url(feed_id: i32) {
     let mut socket = match UdpSocket::bind("127.0.0.1:3001") {
         Ok(sock) => sock,
         Err(e) => {
@@ -32,8 +32,8 @@ fn ipc_send_url(url: Url) {
             return;
         }
     };
-    let bytes = url.to_string();
-    socket.send(bytes.as_bytes());
+    let id_str = format!("{}", feed_id);
+    socket.send(id_str.as_bytes());
 }
 
 #[post("/add", data = "<url>")]
@@ -57,9 +57,9 @@ pub fn add(url: JSON<PostUrl>, user: UserGuard, conn: State<Connection>) -> Cust
             key: key,
             url: url.clone()
         };
-        match diesel::insert(&new_feed).into(feed::table).execute(&*conn) {
+        match diesel::insert(&new_feed).into(feed::table).get_result::<Feed>(&*conn) {
             Ok(feed) => {
-                ipc_send_url(url);
+                ipc_send_url(feed.id);
                 Custom(Status::Ok, ())
             },
             Err(_) => return Custom(Status::new(500, "DB transaction failed"), ())
