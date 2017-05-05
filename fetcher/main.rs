@@ -311,8 +311,9 @@ fn main() {
     let adding = UdpSocket::bind(addr, &handle).unwrap().framed(IdCodec)
         .map(|id| {
             match schema::feed::table.find(id).first::<Feed>(&connection) {
-                Ok(feed) => {
+                Ok(mut feed) => {
                     debug!("Scheduled {} anytime soon", feed.key);
+                    feed.interval = Some(0);
                     scheduler.schedule(0, feed);
                 },
                 Err(error) => error!("Loading feed #{} is failed: {}", id, error)

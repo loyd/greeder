@@ -33,7 +33,7 @@ fn ipc_send_url(feed_id: i32) {
         }
     };
     let id_str = format!("{}", feed_id);
-    socket.send_to(id_str.as_bytes(), "127.0.0.1:3001");
+    socket.send_to(id_str.as_bytes(), "127.0.0.1:3001").unwrap();
 }
 
 #[post("/add", data = "<url>")]
