@@ -25,7 +25,7 @@ pub struct PostUrl {
 }
 
 fn ipc_send_url(feed_id: i32) {
-    let mut socket = match UdpSocket::bind("127.0.0.1:3001") {
+    let mut socket = match UdpSocket::bind("0.0.0.0:0") {
         Ok(sock) => sock,
         Err(e) => {
             error!("Couldn't connect: {:?}", e);
@@ -33,7 +33,7 @@ fn ipc_send_url(feed_id: i32) {
         }
     };
     let id_str = format!("{}", feed_id);
-    socket.send(id_str.as_bytes());
+    socket.send_to(id_str.as_bytes(), "127.0.0.1:3001");
 }
 
 #[post("/add", data = "<url>")]
